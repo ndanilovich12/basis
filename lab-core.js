@@ -558,6 +558,15 @@
       }
       s += '<path class="ln" d="' + path(sr.values) + '" stroke="' + sr.color + '" stroke-width="' + (sr.width || 2) + '"/>';
     });
+    /* event markers: o.marks = [{i, v, color, label, tip}] */
+    var markAt = {};
+    (o.marks || []).forEach(function (mk) {
+      if (mk.v == null || mk.i < 0 || mk.i >= n) return;
+      markAt[mk.i] = mk;
+      var mx = X(mk.i), my = Y(mk.v), up = mk.dir !== 'down', ly = up ? my - 11 : my + 18;
+      s += '<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5.5" fill="' + mk.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
+      if (mk.label) s += '<text x="' + mx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle" style="font-weight:600;fill:' + mk.color + '">' + esc(mk.label) + '</text>';
+    });
     /* end markers and labels */
     var ends = [];
     o.series.forEach(function (sr) {
@@ -584,6 +593,7 @@
         var v = sr.values[i];
         if (v == null) dots[k].style.display = 'none'; else { dots[k].style.display = ''; dots[k].setAttribute('cx', X(i)); dots[k].setAttribute('cy', Y(v)); rows.push({ color: sr.color, label: sr.name, value: (sr.fmt || tipFmt)(v) }); }
       });
+      if (markAt[i]) rows.push({ color: markAt[i].color, label: markAt[i].tipLabel || 'Move', value: markAt[i].tip });
       if (o.bars && o.bars.values[i] != null) rows.push({ label: o.bars.name, value: (o.bars.fmt || yFmt)(o.bars.values[i]) });
       if (o.band && o.band.hi[i] != null) rows.push({ label: o.band.name, value: tipFmt(o.band.lo[i]) + ' – ' + tipFmt(o.band.hi[i]) });
       var bb = svg.getBoundingClientRect(), sx = bb.width / W;
