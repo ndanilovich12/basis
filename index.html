@@ -564,7 +564,7 @@ $('t-form').addEventListener('submit', function(ev){
   msg.textContent = 'Loading ' + sym + '…';
   getJSON('/api/quotes/' + encodeURIComponent(sym) + '?range=2y&interval=1d').then(function(j){
     if (!j || !j.chart || !j.chart.result) throw new Error('none');
-    addSeries(sym, j); msg.textContent = 'Added ' + real.series[sym].name + '.'; show();
+    addSeries(sym, j); msg.textContent = 'Added ' + real.series[sym].name.replace(/\.$/, '') + '.'; show();
   }).catch(function(){ msg.textContent = 'Could not find ' + sym + '. Check the symbol and try again.'; });
 });
 
