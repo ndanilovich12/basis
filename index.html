@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bull Run · Nate Danilovich</title>
-<meta name="description" content="A stock and business analytics tool built by Nate Danilovich. Indicators, risk statistics and plain-English reads, all computed in the browser.">
+<meta name="description" content="A stock and business analytics tool built by Nate Danilovich. Live prices, a year-ahead simulation, risk statistics and plain-English reads, all computed in the browser.">
 <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,9 @@ button,select,input{font:inherit;color:inherit}
 .brand{font:800 22px/1 var(--display);font-stretch:75%;letter-spacing:.01em;text-transform:uppercase;margin-right:auto}
 .brand em{font:italic 400 22px var(--serif);text-transform:none;color:var(--sky);margin-left:6px}
 .tabs{display:flex;gap:4px;background:rgba(255,255,255,.1);padding:4px;border-radius:999px}
-.tabs button{border:0;background:none;color:#fff;padding:7px 18px;border-radius:999px;font-weight:600;cursor:pointer;opacity:.75}
+.tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;background:none;color:#fff;padding:7px 18px;border-radius:999px;font-weight:600;cursor:pointer;opacity:.75;white-space:nowrap}
+@media (max-width:480px){.tabs button{padding:7px 12px;font-size:14px}}
 .tabs button[aria-selected="true"]{background:#fff;color:var(--ink);opacity:1}
 
 .intro{padding-block:28px 6px}
@@ -74,7 +76,8 @@ table.wl tr{cursor:pointer}
 table.wl tbody tr:hover{background:var(--paper)}
 table.wl tr[aria-selected="true"]{background:var(--sky-soft)}
 table.wl tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--ink)}
-.sym{font-weight:750;display:flex;align-items:center;gap:7px}
+.sym{font-weight:750;display:flex;align-items:center;gap:8px}
+td .nm{margin-left:32px}
 .sym i{width:9px;height:9px;border-radius:50%;flex:none}
 .nm{color:var(--muted);font-size:12px;display:block;line-height:1.25}
 .up{color:var(--up);font-weight:650}.down{color:var(--down);font-weight:650}
@@ -88,9 +91,47 @@ td.sp svg{display:block;margin-left:auto}
 .kpi .l{font-size:12.5px;color:var(--muted);margin-bottom:3px}
 .kpi .v{font:700 24px/1.1 var(--body);letter-spacing:-.01em;overflow-wrap:anywhere}
 .kpi .s{font-size:12px;color:var(--muted);margin-top:3px}
-.head{display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap;margin:0 0 14px}
-.head h2{font:800 30px/1 var(--display);font-stretch:72%;text-transform:uppercase;margin:0}
-.head .nm2{color:var(--muted)}
+.head{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:0 0 14px}
+.head h2{font:800 30px/1 var(--display);font-stretch:72%;text-transform:uppercase;margin:0 0 3px}
+.head .nm2{color:var(--muted);font-size:14px;display:block}
+.head .ttl{min-width:0;flex:1 1 200px}
+.px{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;justify-content:flex-end}
+.pxv{font:700 28px/1 var(--body);letter-spacing:-.01em;font-variant-numeric:tabular-nums;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+.pxd{font-size:14px;font-variant-numeric:tabular-nums}
+.pxs{font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.pxs i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);display:block}
+.pxs.live{color:var(--up)}.pxs.live i{background:var(--up);animation:livedot 1.8s ease-out infinite}
+@keyframes livedot{0%{box-shadow:0 0 0 0 rgba(11,122,83,.5)}100%{box-shadow:0 0 0 7px rgba(11,122,83,0)}}
+@keyframes tickup{0%{background:rgba(11,122,83,.28)}100%{background:rgba(11,122,83,0)}}
+@keyframes tickdn{0%{background:rgba(194,31,56,.26)}100%{background:rgba(194,31,56,0)}}
+.pxv.tickup{animation:tickup 1.2s ease-out}.pxv.tickdn{animation:tickdn 1.2s ease-out}
+.btn.sm{padding:6px 13px;font-size:13px}
+/* company logo chip: a coloured initial until the logo image loads */
+.lg{width:24px;height:24px;border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px var(--line);display:inline-grid;place-items:center;overflow:hidden;flex:none;position:relative;vertical-align:middle}
+.lg b{font:700 11px/1 var(--body);color:#fff;width:100%;height:100%;display:grid;place-items:center}
+.lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.lg img.fit{inset:14%;width:72%;height:72%;object-fit:contain}
+.lg.ok img{opacity:1}.lg.ok b{visibility:hidden}
+.lg.l{width:46px;height:46px;border-radius:12px}.lg.l b{font-size:17px}
+/* forecast */
+.fpick{display:flex;gap:8px;overflow-x:auto;padding:18px 0 6px;scrollbar-width:thin}
+.fpick button{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 14px 5px 6px;font:700 13.5px var(--body);cursor:pointer;white-space:nowrap;flex:none}
+.fpick button:hover{border-color:var(--ink)}
+.fpick button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.fan{position:relative;width:100%}
+.fan canvas{display:block;width:100%;touch-action:pan-y;border-radius:6px}
+.fan canvas:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
+#f-legend{margin:12px 0 0}
+.orow{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:5px 12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.orow:first-child{border-top:0;padding-top:2px}
+.orow .ol{font-size:14px}.orow b{font:700 15px var(--body);font-variant-numeric:tabular-nums}
+.orow .ot{grid-column:1/-1;height:10px;background:var(--paper);border-radius:3px;overflow:hidden}
+.orow .ot i{display:block;height:100%;width:0;border-radius:0 3px 3px 0;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+table.mv td.num{font-weight:700;text-align:right}
+table.mv td.why{color:var(--muted);font-size:12.5px;white-space:normal;min-width:150px}
+#f-inputs td:first-child{white-space:normal}
+@media (max-width:560px){#f-inputs tr{display:grid;grid-template-columns:minmax(0,1fr) max-content;border-top:1px solid var(--line)}#f-inputs td{border-top:0}#f-inputs td.why{grid-column:1/-1;padding-top:0;min-width:0}}
+@media (prefers-reduced-motion:reduce){.orow .ot i{transition:none}.pxs.live i,.pxv.tickup,.pxv.tickdn{animation:none}}
 .stack > * + *{margin-top:18px}
 .read{margin:0;padding:0;list-style:none}
 .read li{padding:10px 0 10px 26px;border-top:1px solid var(--line);position:relative}
@@ -144,7 +185,7 @@ table.mv td{padding:8px 10px 8px 0;border-top:1px solid var(--line);white-space:
 .pick{display:flex;flex-direction:column;gap:2px;max-height:620px;overflow:auto}
 .prow{display:grid;grid-template-columns:minmax(0,1fr) 110px 30px;gap:10px;align-items:center;padding:6px 4px;border-radius:8px;opacity:.6}
 .prow.on{opacity:1;background:var(--sky-soft)}
-.pname{display:flex;align-items:center;gap:7px;min-width:0;cursor:pointer}
+.pname{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer}
 .pname i{width:9px;height:9px;border-radius:50%;flex:none}
 .pname b{font-weight:750;font-size:13.5px}
 .pname span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -187,6 +228,7 @@ footer .wrap{display:flex;gap:10px 24px;flex-wrap:wrap;justify-content:space-bet
   <a class="back" href="https://github.com/ndanilovich12/relay" style="margin-right:6px">Relay →</a>
   <div class="tabs" role="tablist" aria-label="Lab sections">
     <button role="tab" id="tab-markets" aria-selected="true" aria-controls="markets">Markets</button>
+    <button role="tab" id="tab-forecast" aria-selected="false" aria-controls="forecast">Forecast</button>
     <button role="tab" id="tab-portfolio" aria-selected="false" aria-controls="portfolio">Portfolio</button>
     <button role="tab" id="tab-business" aria-selected="false" aria-controls="business">Business</button>
   </div>
@@ -227,15 +269,49 @@ footer .wrap{display:flex;gap:10px 24px;flex-wrap:wrap;justify-content:space-bet
         </div>
       </aside>
       <section class="stack" aria-live="polite">
-        <div class="head"><h2 id="m-title"></h2><span class="nm2" id="m-name"></span></div>
+        <div class="head"><span id="m-logo"></span><div class="ttl"><h2 id="m-title"></h2><span class="nm2" id="m-name"></span></div><div class="px" id="m-px"></div><button class="btn ghost sm" type="button" id="m-fc">Simulate its next year →</button></div>
         <div class="kpis" id="m-kpis"></div>
         <div class="panel"><h2 id="c-title">Price</h2><p class="sub" id="c-sub"></p><div id="c-main"></div></div>
-        <div class="panel" id="p-vol"><h2>Volume</h2><p class="sub">Shares or units traded per day.</p><div id="c-vol"></div></div>
+        <div class="panel" id="p-vol"><h2>Volume</h2><p class="sub">Shares or units traded per day. Green bars are days the price closed up, red bars days it closed down.</p><div id="c-vol"></div></div>
         <div class="panel" id="p-moves"><h2>Biggest moves</h2><p class="sub">The largest one-day gains and drops in this range, marked on the price chart.</p><div class="mvwrap"><table class="mv" id="m-moves"></table></div></div>
         <div class="panel" id="p-rsi"><h2>RSI (14)</h2><p class="sub">Momentum on a 0 to 100 scale. Above 70 is stretched up, below 30 is stretched down.</p><div id="c-rsi"></div></div>
         <div class="panel"><h2>The read</h2><p class="sub">Plain-English summary written by rules from the numbers above.</p><ul class="read" id="m-read"></ul><p class="fine" id="m-fine"></p></div>
         <div class="panel"><h2>Correlation</h2><p class="sub" id="h-sub">How closely daily moves line up over the selected range. 1.00 means they move together.</p><div class="heat" id="m-heat"></div><div class="scale"><span>−1</span><i></i><span>+1</span></div></div>
       </section>
+    </div>
+  </div>
+</main>
+
+<!-- ============ FORECAST ============ -->
+<main id="forecast" role="tabpanel" aria-labelledby="tab-forecast" hidden>
+  <div class="wrap">
+    <div class="intro">
+      <h1>Play out next year. <em>Hundreds of times.</em></h1>
+      <p>Pick a stock. Bull Run takes its latest price, its real day-to-day swings and its trend, then plays the months ahead out again and again. No single line is a prediction. The spread of all of them shows what is likely, what is possible and how rough the ride could get.</p>
+    </div>
+    <div class="fpick" id="f-pick" role="group" aria-label="Pick a stock"></div>
+    <div class="filters">
+      <div class="fgroup"><span class="mono">Runs</span>
+        <div class="seg" id="f-runs"><button data-v="100">100</button><button data-v="300" aria-pressed="true">300</button><button data-v="1000">1,000</button></div>
+      </div>
+      <div class="fgroup"><span class="mono">Look ahead</span>
+        <div class="seg" id="f-steps"><button data-v="63">3M</button><button data-v="126">6M</button><button data-v="252" aria-pressed="true">1Y</button></div>
+      </div>
+      <div class="fgroup"><button class="btn sm" type="button" id="f-again">↻ Run it again</button><span class="badge" id="f-status" aria-live="off"></span></div>
+    </div>
+    <div class="stack" style="padding-block:22px 40px">
+      <div class="head"><span id="f-logo"></span><div class="ttl"><h2 id="f-title"></h2><span class="nm2" id="f-name"></span></div><div class="px" id="f-px"></div></div>
+      <div class="kpis" id="f-kpis"></div>
+      <div class="panel"><h2 id="f-ctitle"></h2><p class="sub" id="f-csub"></p>
+        <div class="fan" id="f-chart"><canvas role="img" tabindex="0" aria-label="Simulated price paths"></canvas></div>
+        <div class="lc-legend" id="f-legend"><span><i style="border-color:#0a1e3f"></i>Actual price, then the median run</span><span><i style="border-color:#2a6fdb"></i>Run that ended higher</span><span><i style="border-color:#d7263d"></i>Run that ended lower</span><span><i class="box" style="background:rgba(42,111,219,.22)"></i>9 in 10 runs</span><span><i class="box" style="background:rgba(42,111,219,.45)"></i>Middle half</span></div>
+      </div>
+      <div class="two">
+        <div class="panel"><h2>The odds</h2><p class="sub">The share of runs where each thing happened.</p><div id="f-odds"></div></div>
+        <div class="panel"><h2>What went into it</h2><p class="sub">The inputs behind every run, taken from the latest prices.</p><div class="mvwrap"><table class="mv" id="f-inputs"></table></div></div>
+      </div>
+      <div class="panel"><h2>The read</h2><p class="sub">Written by rules from the simulation. Open any line to see the math.</p><ul class="read" id="f-read"></ul>
+        <p class="fine">This is a simulation built from past prices. It shows the range of outcomes if the months ahead behave like the stock’s recent history, and they may not. It cannot see earnings, news or anything else that has not happened yet. It is not a prediction and not investment advice.</p></div>
     </div>
   </div>
 </main>
@@ -315,7 +391,7 @@ footer .wrap{display:flex;gap:10px 24px;flex-wrap:wrap;justify-content:space-bet
   </div>
 </main>
 
-<footer><div class="wrap"><span>Built by Nate Danilovich. Plain JavaScript, no chart libraries.</span><span>Descriptive statistics only. Nothing here is investment advice.</span></div></footer>
+<footer><div class="wrap"><span>Built by Nate Danilovich. Plain JavaScript, no chart libraries.</span><span>Statistics and simulations only. Nothing here is investment advice.</span></div></footer>
 
 <script src="tech-data.js"></script>
 <script src="lab-core.js"></script>
@@ -330,17 +406,46 @@ function kpi(box, items){ box.textContent = ''; items.forEach(function(k){ var d
 function readList(box, items){ box.textContent = ''; items.forEach(function(it){ var li = el('li'); li.setAttribute('data-t', it.tone || 'note'); li.setAttribute('data-g', it.tone === 'up' ? '▲' : it.tone === 'down' ? '▼' : it.tone === 'proj' ? '→' : '●'); li.appendChild(el('div', null, it.text)); if (it.math){ var d = el('details'); d.appendChild(el('summary', null, 'Show the math')); d.appendChild(el('code', null, it.math)); li.appendChild(d); } box.appendChild(li); }); }
 
 /* ---------- tabs */
-var TABS = ['markets','portfolio','business'];
+var TABS = ['markets','forecast','portfolio','business'], ANIM = true;
 function showTab(name){
   if (TABS.indexOf(name) < 0) name = 'markets';
   TABS.forEach(function(t){ $(t).hidden = t !== name; $('tab-' + t).setAttribute('aria-selected', t === name ? 'true' : 'false'); });
-  if (name === 'business') renderBiz(); else if (name === 'portfolio') renderPort(); else renderMarkets();
+  if (name === 'forecast' && !real) name = 'markets';
+  L.hideTip();
+  if (name === 'business') renderBiz(); else if (name === 'portfolio') renderPort(); else if (name === 'forecast') renderForecast(); else renderMarkets();
+  pollSoon();
 }
 function currentTab(){ return TABS.filter(function(t){ return !$(t).hidden; })[0]; }
 $('tab-markets').addEventListener('click', function(){ location.hash = 'markets'; showTab('markets'); });
+$('tab-forecast').addEventListener('click', function(){ location.hash = 'forecast'; showTab('forecast'); });
 $('tab-business').addEventListener('click', function(){ location.hash = 'business'; showTab('business'); });
 $('tab-portfolio').addEventListener('click', function(){ location.hash = 'portfolio'; showTab('portfolio'); });
-window.addEventListener('hashchange', function(){ showTab(location.hash.slice(1)); });
+window.addEventListener('hashchange', function(){ var h = location.hash.slice(1); if (h !== currentTab()) showTab(h); });
+
+/* ---------- company logos: loaded by ticker from a public logo service, with a coloured initial as the fallback */
+var LOGO_SRC = [function(t){ return 'https://assets.parqet.com/logos/symbol/' + t + '?format=png'; }, function(t){ return 'https://financialmodelingprep.com/image-stock/' + t + '.png'; }], LOGO = {}, LIVE = {};
+function logo(s, size){
+  var w = el('span', 'lg' + (size ? ' ' + size : '')); w.setAttribute('aria-hidden', 'true');
+  var b = el('b', null, s.sym.replace(/[^A-Z0-9]/g, '').charAt(0)); b.style.background = s.color || '#64748b'; w.appendChild(b);
+  if (!real || real.series[s.sym] !== s || LOGO[s.sym] === false) return w;
+  var known = typeof LOGO[s.sym] === 'number', k = known ? LOGO[s.sym] : 0, t = encodeURIComponent(s.sym.replace('.', '-')), img = new Image();
+  img.alt = ''; img.decoding = 'async'; img.referrerPolicy = 'no-referrer';
+  function use(){ img.className = k ? 'fit' : ''; img.src = LOGO_SRC[k](t); }
+  img.onload = function(){ if (img.naturalWidth < 8) return img.onerror(); LOGO[s.sym] = k; w.classList.add('ok'); };
+  img.onerror = function(){ k++; if (k < LOGO_SRC.length) use(); else { LOGO[s.sym] = false; w.classList.remove('ok'); if (img.parentNode) img.parentNode.removeChild(img); } };
+  if (known) w.classList.add('ok');
+  use(); w.appendChild(img); return w;
+}
+/* the price block in a header: last price, day move, and whether it is live */
+function pxBlock(box, s){
+  box.textContent = ''; var n = s.close.length, last = s.close[n-1], day = last / s.close[n-2] - 1, lv = LIVE[s.sym];
+  var p = el('b', 'pxv', (s.unit || '') + F.price(last)); box.appendChild(p);
+  box.appendChild(el('span', 'pxd ' + (day >= 0 ? 'up' : 'down'), (day >= 0 ? '▲ ' : '▼ ') + F.pct(Math.abs(day), 2)));
+  var st = el('span', 'pxs' + (lv && lv.open ? ' live' : '')); st.appendChild(el('i'));
+  st.appendChild(document.createTextNode(lv ? (lv.open ? 'Live · ' : 'Last trade · ') + new Date(lv.ts).toLocaleString([], lv.open ? { hour: 'numeric', minute: '2-digit' } : { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : s.dates ? 'Close · ' + shortDate(s.dates[n-1]) : ''));
+  box.appendChild(st);
+  if (lv && lv.flash){ p.classList.add(lv.flash); lv.flash = null; }
+}
 
 /* =====================================================  MARKETS  */
 var sim = L.genMarket(); Object.keys(sim.series).forEach(function(k){ sim.series[k].dates = sim.dates; });
@@ -362,13 +467,14 @@ function renderWatch(){
     tr.setAttribute('aria-selected', on ? 'true' : 'false'); tr.tabIndex = 0;
     var c1 = el('td'), sy = el('span','sym');
     if (M.mode === 'compare'){ var cb = el('input'); cb.type = 'checkbox'; cb.checked = on; cb.tabIndex = -1; cb.setAttribute('aria-label', 'Compare ' + sym); sy.appendChild(cb); }
-    var dot = el('i'); dot.style.background = s.color; sy.appendChild(dot); sy.appendChild(document.createTextNode(sym));
-    c1.appendChild(sy); c1.appendChild(el('span','nm', s.name)); tr.appendChild(c1);
+    if (M.mode === 'compare'){ var dot = el('i'); dot.style.background = s.color; sy.appendChild(dot); } else sy.appendChild(logo(s));
+    sy.appendChild(document.createTextNode(sym));
+    c1.appendChild(sy); var nm = el('span','nm', s.name); if (M.mode === 'compare') nm.style.marginLeft = '0'; c1.appendChild(nm); tr.appendChild(c1);
     tr.appendChild(el('td', null, F.price(s.close[n-1])));
     tr.appendChild(el('td', day >= 0 ? 'up' : 'down', (day >= 0 ? '▲ ' : '▼ ') + F.pct(Math.abs(day), 2)));
     var sp = el('td','sp'); sp.innerHTML = L.spark(s.close.slice(-60), s.color); tr.appendChild(sp);
     function pick(){
-      if (M.mode === 'single') M.sel = sym;
+      if (M.mode === 'single'){ M.sel = sym; pollSoon(); }
       else { var k = M.picks.indexOf(sym); if (k >= 0){ if (M.picks.length > 2) M.picks.splice(k, 1); } else { if (M.picks.length >= 4) M.picks.shift(); M.picks.push(sym); } }
       renderMarkets();
     }
@@ -382,6 +488,8 @@ function renderSingle(){
   var sum = S.summary(close, s.ppy), idx = d.index && d.index !== M.sel ? d.series[d.index] : null;
   var sma20 = S.sma(s.close, 20), sma50 = S.sma(s.close, 50), boll = S.bollinger(s.close, 20, 2), rsi = S.rsi(s.close, 14), n = s.close.length;
   $('m-title').textContent = s.sym; $('m-name').textContent = s.name + ' · ' + s.sector;
+  var mlg = $('m-logo'); mlg.textContent = ''; mlg.appendChild(logo(s, 'l')); mlg.hidden = false; $('m-px').hidden = false; pxBlock($('m-px'), s); $('m-fc').hidden = !d.real;
+  var un = s.unit || '', pf = function(v){ return un + F.price(v); };
   var beta = idx ? S.beta(S.returns(close), S.returns(idx.close.slice(from))) : null;
   var k = [
     { l: 'Last', v: (s.unit || '') + F.price(sum.last), s: (sum.day >= 0 ? '▲ ' : '▼ ') + F.pct(Math.abs(sum.day), 2) + ' on the day' },
@@ -393,9 +501,9 @@ function renderSingle(){
   if (beta != null) k.push({ l: 'Beta vs ' + idx.sym, v: beta.toFixed(2), s: 'sensitivity to the benchmark' });
   kpi($('m-kpis'), k);
   $('c-title').textContent = 'Price'; $('c-sub').textContent = F.date(dates[0]) + ' to ' + F.date(dates[dates.length-1]) + (d.simulated ? ' · simulated' : d.real ? ' · ' + d.source : '');
-  var series = [{ name: s.sym + ' close', color: 'var(--ink)', values: close, width: 2, area: !M.o.boll }];
-  if (M.o.sma20) series.push({ name: '20-day average', color: '#2a6fdb', values: sma20.slice(from), width: 1.75, noDot: true });
-  if (M.o.sma50) series.push({ name: '50-day average', color: '#e08a00', values: sma50.slice(from), width: 1.75, noDot: true });
+  var series = [{ name: s.sym + ' close', color: 'var(--ink)', values: close, width: 2.25, area: true, areaColor: '#2a6fdb', areaTop: M.o.boll ? 0.1 : 0.28, fmt: pf }];
+  if (M.o.sma20) series.push({ name: '20-day average', color: '#2a6fdb', values: sma20.slice(from), width: 1.5, noDot: true, fmt: pf });
+  if (M.o.sma50) series.push({ name: '50-day average', color: '#e08a00', values: sma50.slice(from), width: 1.5, noDot: true, fmt: pf });
   /* biggest one-day moves inside the window */
   var mv = [];
   for (var q = Math.max(1, from + 1); q < s.close.length; q++) mv.push({ i: q - from, r: s.close[q] / s.close[q-1] - 1, c: s.close[q], d: s.dates[q] });
@@ -403,7 +511,7 @@ function renderSingle(){
   var dns = mv.filter(function(m){ return m.r < 0; }).sort(function(a,b){ return a.r - b.r; }).slice(0, 3);
   var marks = ups.map(function(m){ return { i: m.i, v: m.c, color: '#0b7a53', dir: 'up', label: F.pct(m.r, 1, true), tip: F.pct(m.r, 2, true), tipLabel: 'One-day move' }; })
     .concat(dns.map(function(m){ return { i: m.i, v: m.c, color: '#c21f38', dir: 'down', label: F.pct(m.r, 1, true), tip: F.pct(m.r, 2, true), tipLabel: 'One-day move' }; }));
-  L.lineChart($('c-main'), { dates: dates, series: series, marks: marks, band: M.o.boll ? { lo: boll.lo.slice(from), hi: boll.hi.slice(from), color: '#2a6fdb', name: 'Bollinger band (20, 2σ)' } : null, height: 320, label: s.sym + ' price chart' });
+  L.lineChart($('c-main'), { dates: dates, series: series, marks: marks, band: M.o.boll ? { lo: boll.lo.slice(from), hi: boll.hi.slice(from), color: '#2a6fdb', name: 'Bollinger band (20, 2σ)' } : null, height: 390, lastTag: true, pulse: true, animate: ANIM, yFmt: function(v){ return un + F.price(v).replace(/\.00$/, ''); }, label: s.sym + ' price chart' });
   var mt = $('m-moves'); mt.textContent = ''; $('p-moves').hidden = false;
   var hr = el('tr'); ['', 'Date', 'Move', 'Close', 'vs typical day'].forEach(function(h){ hr.appendChild(el('th', null, h)); }); var th0 = el('thead'); th0.appendChild(hr); mt.appendChild(th0);
   var sdv = S.std(mv.map(function(m){ return m.r; })), tb0 = el('tbody');
@@ -414,8 +522,8 @@ function renderSingle(){
   });
   mt.appendChild(tb0);
   $('p-vol').hidden = !s.volume; $('p-rsi').hidden = false;
-  if (s.volume) L.lineChart($('c-vol'), { dates: dates, series: [], bars: { values: s.volume.slice(from), color: '#2a6fdb', name: 'Volume', fmt: F.compact }, yFmt: F.compact, height: 120, noX: true, legend: false, label: s.sym + ' daily volume' });
-  L.lineChart($('c-rsi'), { dates: dates, series: [{ name: 'RSI (14)', color: '#2a6fdb', values: rsi.slice(from), width: 2, fmt: function(v){ return v.toFixed(1); } }], yDomain: [0, 100], yTicks: [0, 30, 50, 70, 100], yFmt: function(v){ return String(Math.round(v)); }, refs: [{ y: 70, label: '70' }, { y: 30, label: '30' }], height: 150, legend: false, label: s.sym + ' RSI' });
+  if (s.volume) L.lineChart($('c-vol'), { dates: dates, series: [], bars: { values: s.volume.slice(from), color: '#2a6fdb', colors: close.map(function(v, i){ return i && v < close[i-1] ? '#c21f38' : '#0b7a53'; }), name: 'Volume', fmt: F.compact }, yFmt: F.compact, height: 120, animate: ANIM, noX: true, legend: false, label: s.sym + ' daily volume' });
+  L.lineChart($('c-rsi'), { dates: dates, series: [{ name: 'RSI (14)', color: '#2a6fdb', values: rsi.slice(from), width: 2, fmt: function(v){ return v.toFixed(1); } }], yDomain: [0, 100], yTicks: [0, 30, 50, 70, 100], yFmt: function(v){ return String(Math.round(v)); }, refs: [{ y: 70, label: '70' }, { y: 30, label: '30' }], height: 150, legend: false, animate: ANIM, label: s.sym + ' RSI' });
 
   /* the read */
   var R = [], last = s.close[n-1], u = s.unit || '';
@@ -445,10 +553,11 @@ function renderCompare(){
   var dates = keys.map(function(k){ return new Date(k); });
   var series = picks.map(function(p, i){ var base = maps[i][keys[0]]; return { name: p + ' · ' + d.series[p].name, short: p, color: d.series[p].color, values: keys.map(function(k){ return maps[i][k] / base * 100; }) }; });
   $('m-title').textContent = picks.join(' vs '); $('m-name').textContent = 'Each line starts at 100 so the moves are comparable';
+  $('m-logo').hidden = true; $('m-px').hidden = true; $('m-fc').hidden = true;
   var perf = series.map(function(sr, i){ var s = d.series[picks[i]], w = keys.map(function(k){ return maps[i][k]; }); return { sym: picks[i], sum: S.summary(w, s.ppy), color: sr.color }; });
   kpi($('m-kpis'), perf.map(function(p){ return { l: p.sym + ' return, ' + rangeLabel(), v: F.pct(p.sum.ret, 1, true), cls: p.sum.ret >= 0 ? 'up' : 'down', s: 'volatility ' + F.pct(p.sum.vol) + ' · drawdown ' + F.pct(p.sum.dd.dd) }; }));
   $('c-title').textContent = 'Relative performance'; $('c-sub').textContent = 'Indexed to 100 at ' + F.date(dates[0]) + '. Pick two to four names in the watchlist.';
-  L.lineChart($('c-main'), { dates: dates, series: series, height: 340, endLabels: true, yFmt: function(v){ return v.toFixed(0); }, refs: [{ y: 100 }], label: 'Relative performance of ' + picks.join(', ') });
+  L.lineChart($('c-main'), { dates: dates, series: series, height: 380, endLabels: true, animate: ANIM, yFmt: function(v){ return v.toFixed(0); }, refs: [{ y: 100 }], label: 'Relative performance of ' + picks.join(', ') });
   $('p-vol').hidden = true; $('p-rsi').hidden = true; $('p-moves').hidden = true;
   var sorted = perf.slice().sort(function(a,b){ return b.sum.ret - a.sum.ret; }), best = sorted[0], worst = sorted[sorted.length-1], R = [];
   R.push({ tone: best.sum.ret >= 0 ? 'up' : 'down', text: best.sym + ' led over the last ' + rangeLabel() + ' at ' + F.pct(best.sum.ret, 1, true) + '. ' + worst.sym + ' trailed at ' + F.pct(worst.sum.ret, 1, true) + '.', math: 'last price ÷ first price in the window − 1, for each name' });
@@ -472,13 +581,13 @@ function renderHeat(){
   t.appendChild(tb); box.appendChild(t);
 }
 
-function renderMarkets(){
-  var d = ds();
+function renderMarkets(still){
+  var d = ds(); ANIM = !still;
   if (!d.series[M.sel]) M.sel = d.order[0];
   M.picks = M.picks.filter(function(p){ return d.series[p]; }); while (M.picks.length < 2) { var nx = d.order.filter(function(o){ return M.picks.indexOf(o) < 0; })[0]; if (!nx) break; M.picks.push(nx); }
   $('m-overlays').hidden = M.mode !== 'single';
-  renderWatch(); if (M.mode === 'single') renderSingle(); else renderCompare(); renderHeat();
-  $('m-fine').textContent = d.real ? 'Real daily closing prices from ' + d.source + (d.fresh ? ', refreshed when this page loaded.' : ', as of ' + F.date(d.asOf) + '.') + ' This describes the data. It is not a forecast and not investment advice.' : d.simulated ? 'These companies and prices are made up, generated by a seeded random model so the tool always has data. This describes the data. It is not a forecast and not investment advice.' : 'Live data from CoinGecko and Frankfurter (European Central Bank reference rates). This describes the data. It is not a forecast and not investment advice.';
+  renderWatch(); if (M.mode === 'single') renderSingle(); else renderCompare(); renderHeat(); ANIM = true;
+  $('m-fine').textContent = d.real ? 'Real daily closing prices from ' + d.source + (d.fresh ? ', refreshed when this page loaded.' : ', as of ' + F.date(d.asOf) + '.') + ' This page describes the data; the Forecast tab simulates what could come next. Neither is investment advice.' : d.simulated ? 'These companies and prices are made up, generated by a seeded random model so the tool always has data. This describes the data. It is not a forecast and not investment advice.' : 'Live data from CoinGecko and Frankfurter (European Central Bank reference rates). This describes the data. It is not a forecast and not investment advice.';
 }
 seg('m-range', function(v){ M.days = +v; renderMarkets(); });
 seg('m-mode', function(v){ M.mode = v; renderMarkets(); });
@@ -541,9 +650,34 @@ function refreshReal(){
     });
     real.order.forEach(function(sym, i){ var s = real.series[sym]; s.dates = fresh[i].dates; s.close = fresh[i].close; s.volume = sym === real.index ? null : fresh[i].volume; });
     real.dates = fresh[0].dates; real.asOf = real.dates[real.dates.length - 1]; real.fresh = true;
-    if (M.source === 'real'){ realBadge(); if (!$('markets').hidden) renderMarkets(); }
+    if (M.source === 'real'){ realBadge(); if (!$('markets').hidden) renderMarkets(true); }
+    if (!$('forecast').hidden){ if (FC.done) fcRun(true); else FC.stale = true; }
+    pollSoon();
   }).catch(function(){});
 }
+/* ---------- live price: once a minute, ask for the latest trade of the stock on screen */
+var pollT = 0;
+function pollSoon(){ clearTimeout(pollT); pollT = setTimeout(pollLive, 1200); }
+function pollLive(){
+  clearTimeout(pollT); pollT = setTimeout(pollLive, 60000);
+  var tab = currentTab();
+  if (!real || !/^https?:$/.test(location.protocol) || document.hidden) return;
+  if (tab !== 'forecast' && !(tab === 'markets' && M.source === 'real' && M.mode === 'single')) return;
+  var sym = tab === 'forecast' ? FC.sym : M.sel, s = real.series[sym]; if (!s) return;
+  getJSON('/api/quotes/' + encodeURIComponent(sym) + '?range=1d&interval=1m').then(function(j){
+    var m = j.chart.result[0].meta, p = +m.regularMarketPrice, ts = m.regularMarketTime * 1000; if (!(p > 0) || !ts) return;
+    var n = s.close.length, old = s.close[n-1], day = new Date(new Date(ts).toISOString().slice(0, 10) + 'T00:00:00Z'), lastD = s.dates[n-1].getTime();
+    if (day.getTime() < lastD) return;
+    var moved = Math.abs(p - old) > 1e-6;
+    if (day.getTime() > lastD){ s.dates = s.dates.concat([day]); s.close = s.close.concat([p]); if (s.volume) s.volume = s.volume.concat([null]); moved = true; }
+    else if (moved){ if (s.dates === real.dates){ s.dates = s.dates.slice(); } s.close = s.close.slice(); s.close[n-1] = p; }
+    LIVE[sym] = { ts: ts, open: Date.now() - ts < 20 * 60000, flash: moved && LIVE[sym] ? (p >= old ? 'tickup' : 'tickdn') : null };
+    if (currentTab() !== tab || (tab === 'forecast' ? FC.sym : M.sel) !== sym) return;
+    if (tab === 'markets'){ if (moved) renderMarkets(true); else pxBlock($('m-px'), s); }
+    else if (moved && FC.done) fcRun(true); else { if (moved) FC.stale = true; pxBlock($('f-px'), s); }
+  }).catch(function(){});
+}
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) pollSoon(); });
 
 /* ---------- add any ticker (works on the hosted site, through the /api/quotes proxy rule) */
 function addSeries(sym, j){
@@ -558,7 +692,7 @@ $('t-form').addEventListener('submit', function(ev){
   var sym = $('t-in').value.trim().toUpperCase(), msg = $('t-msg');
   if (!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym)){ msg.textContent = 'Type a ticker symbol, like UBER or BRK-B.'; return; }
   if (!real){ msg.textContent = 'Stock data is not available here.'; return; }
-  function show(){ M.source = 'real'; setSeg('m-source', 'real'); realBadge(); M.mode = 'single'; setSeg('m-mode', 'single'); M.sel = sym; $('t-in').value = ''; renderMarkets(); renderPortPicker(); }
+  function show(){ M.source = 'real'; setSeg('m-source', 'real'); realBadge(); M.mode = 'single'; setSeg('m-mode', 'single'); M.sel = sym; $('t-in').value = ''; renderMarkets(); renderPortPicker(); pollSoon(); }
   if (real.series[sym]){ msg.textContent = sym + ' is already on the list.'; show(); return; }
   if (!/^https?:$/.test(location.protocol)){ msg.textContent = 'Ticker search works on the live site. This copy only has the saved list.'; return; }
   msg.textContent = 'Loading ' + sym + '…';
@@ -567,6 +701,233 @@ $('t-form').addEventListener('submit', function(ev){
     addSeries(sym, j); msg.textContent = 'Added ' + real.series[sym].name.replace(/\.$/, '') + '.'; show();
   }).catch(function(){ msg.textContent = 'Could not find ' + sym + '. Check the symbol and try again.'; });
 });
+
+/* =====================================================  FORECAST
+   Plays the next year out many times from the latest price. The model lives in lab-core.js (Lab.forecast). */
+var FC = { sym: 'AAPL', runs: 300, steps: 252, seed: 1, f: null, done: false, hover: null, baked: 0, raf: 0 };
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], CFONT = '500 10.5px "IBM Plex Mono",ui-monospace,Menlo,monospace';
+function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+function fcSeries(){ return real.series[FC.sym] || real.series[real.order[0]]; }
+function horizon(){ return FC.steps === 63 ? 'three months' : FC.steps === 126 ? 'six months' : 'year'; }
+function betaVs(a, b){ var ma = retMap(a, 0), mb = retMap(b, 0), x = [], y = []; Object.keys(ma).forEach(function(k){ if (k in mb){ x.push(ma[k]); y.push(mb[k]); } }); return x.length > 20 ? S.beta(x, y) : 1; }
+function usd(v){ return '$' + F.price(v); }
+function usd0(v){ return v >= 100 ? '$' + F.num(v, 0) : usd(v); }
+
+function fcPicker(){
+  var box = $('f-pick'); box.textContent = '';
+  real.order.forEach(function(sym){
+    var s = real.series[sym], b = el('button'); b.type = 'button'; b.setAttribute('aria-pressed', sym === FC.sym ? 'true' : 'false'); b.title = s.name;
+    b.appendChild(logo(s)); b.appendChild(el('span', null, sym));
+    b.addEventListener('click', function(){ FC.sym = sym; fcRun(); });
+    box.appendChild(b);
+  });
+}
+function fcStatic(){
+  var s = fcSeries(), f = FC.f, m = f.model, n = s.close.length;
+  $('f-pick').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.lastChild.textContent === s.sym ? 'true' : 'false'); });
+  var lg = $('f-logo'); lg.textContent = ''; lg.appendChild(logo(s, 'l'));
+  $('f-title').textContent = s.sym; $('f-name').textContent = s.name + ' · the next ' + horizon(); pxBlock($('f-px'), s);
+  $('f-ctitle').textContent = F.num(f.runs) + ' ways the next ' + horizon() + ' could go';
+  $('f-csub').textContent = 'Every thin line is one full run, starting from ' + usd(f.s0) + '. Blue runs finished above that price, red runs below. The bars on the right pile up where the runs ended.';
+  var t = $('f-inputs'); t.textContent = ''; var tb = el('tbody');
+  [['Starting price', usd(f.s0), LIVE[s.sym] ? 'latest trade' : 'close on ' + shortDate(s.dates[n-1])],
+   [s.sym + '’s own trend', F.pct(m.own, 0, true) + ' a year', 'over ' + F.num(m.days) + ' trading days' + (m.own !== m.ownC ? ', counted as ' + F.pct(m.ownC, 0, true) + ' (capped)' : '')],
+   ['Market average × beta', F.pct(m.mkt, 1, true) + ' a year', '7% long-run average × beta of ' + m.beta.toFixed(2) + (Math.abs(m.beta - FC.rawBeta) > 0.005 ? ' (measured ' + FC.rawBeta.toFixed(2) + ', kept between 0.5 and 2)' : '')],
+   ['Drift used in every run', F.pct(m.drift, 1, true) + ' a year', 'half its own trend, half the market figure'],
+   ['Normal daily swing', '±' + F.pct(m.sd, 1), F.pct(m.vol, 0) + ' annualized'],
+   ['Swings right now', m.k0.toFixed(2) + '× normal', 'last 30 days; fades back to normal over a few months'],
+   ['Each run', F.num(f.steps) + ' trading days', 'real past days replayed in ' + m.block + '-day chunks']
+  ].forEach(function(r){ var tr = el('tr'); tr.appendChild(el('td', null, r[0])); tr.appendChild(el('td', 'num', r[1])); tr.appendChild(el('td', 'why', r[2])); tb.appendChild(tr); });
+  t.appendChild(tb);
+  fcOdds(null); readList($('f-read'), [{ tone: 'note', text: 'Running ' + F.num(f.runs) + ' simulations of ' + s.sym + '…' }]);
+}
+function fcCompute(){
+  var s = fcSeries(), idx = real.series[real.index];
+  FC.sym = s.sym; FC.rawBeta = s.sym === real.index ? 1 : betaVs(s, idx);
+  FC.f = L.forecast(s.close, { runs: FC.runs, steps: FC.steps, seed: L.hash(s.sym + ':' + FC.seed + ':' + s.close.length), beta: FC.rawBeta, ppy: 252 });
+  FC.future = L.futureDates(s.dates[s.dates.length - 1], FC.steps); FC.stale = false;
+}
+function fcLayout(){
+  var box = $('f-chart'), cv = box.querySelector('canvas'), s = fcSeries(), f = FC.f, j;
+  var W = Math.max(280, Math.round(box.clientWidth)), small = W < 560, H = small ? 340 : 470, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+  var m = { l: small ? 46 : 56, r: small ? 44 : 72, t: 24, b: 26 };
+  var hist = Math.min(s.close.length - 1, Math.round(f.steps * (small ? 0.3 : 0.42)));
+  var hc = s.close.slice(-hist - 1), hd = s.dates.slice(-hist - 1);
+  var lo = Math.min.apply(null, hc.concat(f.bands.p1)), hi = Math.max.apply(null, hc.concat(f.bands.p99)), pad = (hi - lo) * 0.05; lo = Math.max(0, lo - pad); hi += pad;
+  var x0 = m.l, x1 = W - m.r, y0 = m.t, y1 = H - m.b, nb = Math.max(12, Math.round((y1 - y0) / 10));
+  var G = FC.G = { W: W, H: H, dpr: dpr, m: m, hist: hist, hc: hc, hd: hd, lo: lo, hi: hi, x0: x0, x1: x1, y0: y0, y1: y1, small: small, nb: nb,
+    X: function(t){ return x0 + (t + hist) / (hist + f.steps) * (x1 - x0); },
+    Y: function(v){ return y0 + (1 - (v - lo) / (hi - lo)) * (y1 - y0); },
+    bin: function(v){ return Math.max(0, Math.min(nb - 1, Math.floor((v - lo) / (hi - lo) * nb))); } };
+  var full = []; for (j = 0; j < nb; j++) full.push(0); f.ends.forEach(function(e){ full[G.bin(e)]++; }); G.binMax = Math.max.apply(null, full);
+  FC.bins = full.map(function(){ return 0; }); FC.baked = 0;
+  /* timeline, in milliseconds */
+  var K = Math.min(3, f.runs), T = FC.T = { hist: 550, K: K, intro: 640, introDur: 600, span: f.runs > 500 ? 3600 : 3000, dur: 420 };
+  T.t1 = T.hist + K * T.intro; T.pathsEnd = T.t1 + T.span + T.dur; T.total = T.pathsEnd + 1500;
+  FC.start = function(i){ return i < K ? T.hist + i * T.intro : T.t1 + T.span * (1 - Math.pow(1 - (i - K) / Math.max(1, f.runs - K), 2)); };
+  FC.dur = function(i){ return i < K ? T.introDur : T.dur; };
+  /* background layer: grid, axes, labels */
+  var bg = FC.bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height; var c = bg.getContext('2d'); c.scale(dpr, dpr);
+  c.fillStyle = 'rgba(42,111,219,.04)'; c.fillRect(G.X(0), y0, x1 - G.X(0), y1 - y0);
+  var ticks = L.niceTicks(lo, hi, small ? 4 : 5), stp = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
+  c.font = CFONT; c.textBaseline = 'middle'; c.textAlign = 'right'; c.lineWidth = 1; c.strokeStyle = '#d3dbe6'; c.fillStyle = '#5d6878'; c.setLineDash([2, 5]);
+  ticks.forEach(function(v){ var y = Math.round(G.Y(v)) + 0.5; if (y < y0 || y > y1) return; c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke(); c.fillText('$' + F.num(v, stp >= 1 ? 0 : 2), x0 - 8, y); });
+  c.setLineDash([]); c.textAlign = 'center';
+  var all = hd.concat(FC.future), lastX = -99;
+  for (j = 1; j < all.length; j++) if (all[j].getUTCMonth() !== all[j-1].getUTCMonth()){
+    var x = G.X(j - hist), mo = all[j].getUTCMonth(); if (x - lastX < (small ? 40 : 50) || x > x1 - 12 || x < x0 + 12) continue;
+    c.fillText(mo === 0 ? 'Jan ’' + String(all[j].getUTCFullYear()).slice(2) : MON[mo], x, H - 10); lastX = x;
+  }
+  c.strokeStyle = '#aeb9c8'; c.beginPath(); c.moveTo(x0, y1 + 0.5); c.lineTo(x1, y1 + 0.5); c.stroke();
+  var ty = Math.round(G.Y(f.s0)) + 0.5, tx = Math.round(G.X(0)) + 0.5;
+  c.strokeStyle = 'rgba(10,30,63,.4)'; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(tx, ty); c.lineTo(x1, ty); c.stroke();
+  c.setLineDash([]); c.strokeStyle = 'rgba(10,30,63,.45)'; c.beginPath(); c.moveTo(tx, y0 - 4); c.lineTo(tx, y1); c.stroke();
+  c.font = '600 10px "IBM Plex Mono",ui-monospace,monospace'; c.textBaseline = 'alphabetic'; c.textAlign = 'right'; c.fillStyle = '#5d6878'; c.fillText('PAST', tx - 8, 13);
+  /* finished runs pile up on their own layer */
+  var acc = FC.acc = document.createElement('canvas'); acc.width = cv.width; acc.height = cv.height; var a = FC.accCtx = acc.getContext('2d');
+  a.scale(dpr, dpr); a.beginPath(); a.rect(x0, y0, x1 - x0, y1 - y0); a.clip(); a.lineWidth = 1; a.lineJoin = 'round';
+}
+function fcPill(c, text, xr, y, fill, ink, stroke){
+  c.font = '600 11px "IBM Plex Mono",ui-monospace,monospace'; var w = c.measureText(text).width + 14, x = xr - w, r = 5, h = 20, yy = y - h / 2;
+  c.beginPath(); c.moveTo(x + r, yy); c.arcTo(x + w, yy, x + w, yy + h, r); c.arcTo(x + w, yy + h, x, yy + h, r); c.arcTo(x, yy + h, x, yy, r); c.arcTo(x, yy, x + w, yy, r); c.closePath();
+  c.fillStyle = fill; c.fill(); if (stroke){ c.strokeStyle = stroke; c.lineWidth = 1; c.stroke(); }
+  c.fillStyle = ink; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, x + w / 2, y + 0.5);
+}
+function fcFrame(now){
+  var G = FC.G, T = FC.T, f = FC.f, t = now - FC.t0, cv = $('f-chart').querySelector('canvas'), c = cv.getContext('2d'), i, j, st = f.steps, bd = f.bands;
+  c.setTransform(G.dpr, 0, 0, G.dpr, 0, 0); c.clearRect(0, 0, G.W, G.H); c.drawImage(FC.bg, 0, 0, G.W, G.H);
+  /* move finished runs onto the pile */
+  var ac = FC.accCtx, al = f.runs <= 100 ? 0.32 : f.runs <= 300 ? 0.18 : 0.085;
+  while (FC.baked < f.runs && t >= FC.start(FC.baked) + FC.dur(FC.baked)){
+    var p = f.paths[FC.baked]; ac.strokeStyle = p[st] > f.s0 ? 'rgba(42,111,219,' + al + ')' : 'rgba(215,38,61,' + al + ')';
+    ac.beginPath(); ac.moveTo(G.X(0), G.Y(p[0])); for (j = 1; j <= st; j++) ac.lineTo(G.X(j), G.Y(p[j])); ac.stroke();
+    FC.bins[G.bin(p[st])]++; FC.baked++;
+  }
+  var a3 = clamp01((t - T.pathsEnd) / 500), rm = clamp01((t - T.pathsEnd - 250) / 800), a4 = clamp01((t - T.pathsEnd - 1050) / 350);
+  c.globalAlpha = 1 - 0.45 * a3; c.drawImage(FC.acc, 0, 0, G.W, G.H); c.globalAlpha = 1;
+  c.save(); c.beginPath(); c.rect(G.x0, G.y0, G.x1 - G.x0, G.y1 - G.y0); c.clip(); c.lineJoin = 'round';
+  /* runs still being drawn */
+  var launched = FC.baked;
+  for (i = FC.baked; i < f.runs; i++){
+    var s0t = FC.start(i); if (t < s0t) break; launched = i + 1;
+    var pr = clamp01((t - s0t) / FC.dur(i)), ez = pr < 0.5 ? 2 * pr * pr : 1 - 2 * (1 - pr) * (1 - pr), upto = ez * st, nn = Math.floor(upto), q = f.paths[i], big = i < T.K;
+    var hv = nn >= st ? q[st] : q[nn] + (q[nn + 1] - q[nn]) * (upto - nn), hx = G.X(upto), hy = G.Y(hv);
+    c.strokeStyle = 'rgba(10,30,63,' + (big ? 0.9 : 0.5) + ')'; c.lineWidth = big ? 1.7 : 1;
+    c.beginPath(); c.moveTo(G.X(0), G.Y(q[0])); for (j = 1; j <= nn; j++) c.lineTo(G.X(j), G.Y(q[j])); c.lineTo(hx, hy); c.stroke();
+    c.fillStyle = '#0a1e3f'; c.beginPath(); c.arc(hx, hy, big ? 3.5 : 1.8, 0, 6.2832); c.fill();
+  }
+  /* the summary: where 9 in 10 runs and the middle half sat, and the median run */
+  if (a3 > 0){
+    [[bd.p5, bd.p95, 0.11], [bd.p25, bd.p75, 0.2]].forEach(function(b){
+      c.beginPath(); c.moveTo(G.X(0), G.Y(b[1][0])); for (j = 1; j <= st; j++) c.lineTo(G.X(j), G.Y(b[1][j])); for (j = st; j >= 0; j--) c.lineTo(G.X(j), G.Y(b[0][j])); c.closePath();
+      c.fillStyle = 'rgba(42,111,219,' + (b[2] * a3) + ')'; c.fill();
+    });
+    if (rm > 0){ var mu = rm * st, mn = Math.floor(mu); c.strokeStyle = '#0a1e3f'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(G.X(0), G.Y(bd.p50[0])); for (j = 1; j <= mn; j++) c.lineTo(G.X(j), G.Y(bd.p50[j])); if (mn < st) c.lineTo(G.X(mu), G.Y(bd.p50[mn] + (bd.p50[mn + 1] - bd.p50[mn]) * (mu - mn))); c.stroke(); }
+  }
+  c.restore();
+  /* the real price so far */
+  var hp = clamp01(t / T.hist), tx = G.X(0), ty = G.Y(f.s0);
+  c.save(); c.beginPath(); c.rect(G.x0, 0, (tx - G.x0) * hp + 1, G.H); c.clip();
+  var gr = c.createLinearGradient(0, G.y0, 0, G.y1); gr.addColorStop(0, 'rgba(42,111,219,.22)'); gr.addColorStop(1, 'rgba(42,111,219,0)');
+  c.beginPath(); c.moveTo(G.X(-G.hist), G.Y(G.hc[0])); for (j = 1; j <= G.hist; j++) c.lineTo(G.X(j - G.hist), G.Y(G.hc[j]));
+  c.lineTo(tx, G.y1); c.lineTo(G.x0, G.y1); c.closePath(); c.fillStyle = gr; c.fill();
+  c.beginPath(); c.moveTo(G.X(-G.hist), G.Y(G.hc[0])); for (j = 1; j <= G.hist; j++) c.lineTo(G.X(j - G.hist), G.Y(G.hc[j])); c.strokeStyle = '#0a1e3f'; c.lineWidth = 2.2; c.lineJoin = 'round'; c.stroke();
+  c.restore();
+  /* where the runs ended */
+  var bh = (G.y1 - G.y0) / G.nb, bw = G.m.r - 14;
+  for (j = 0; j < G.nb; j++) if (FC.bins[j]){
+    var by = G.y1 - (j + 1) * bh, len = Math.max(2, FC.bins[j] / G.binMax * bw);
+    c.fillStyle = G.lo + (j + 0.5) / G.nb * (G.hi - G.lo) > f.s0 ? 'rgba(42,111,219,.8)' : 'rgba(215,38,61,.8)'; c.fillRect(G.x1 + 6, by + 1, len, Math.max(1, bh - 2));
+  }
+  /* labels */
+  c.font = '600 10px "IBM Plex Mono",ui-monospace,monospace'; c.textBaseline = 'alphabetic'; c.textAlign = 'left'; c.fillStyle = '#5d6878';
+  c.fillText(hp < 1 ? '' : t < T.pathsEnd ? (G.small ? 'RUN ' : 'POSSIBLE FUTURES · RUN ') + F.num(Math.min(f.runs, launched)) + ' OF ' + F.num(f.runs) : F.num(f.runs) + ' POSSIBLE FUTURES', tx + 8, 13);
+  if (hp >= 1){
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(tx, ty, 6, 0, 6.2832); c.fill(); c.fillStyle = '#0a1e3f'; c.beginPath(); c.arc(tx, ty, 4, 0, 6.2832); c.fill();
+    if (!G.small || a3 < 1) fcPill(c, 'Now ' + usd(f.s0), tx - 9, Math.max(G.y0 + 12, ty - 18), '#0a1e3f', '#fff');
+  }
+  if (a4 > 0){
+    var tags = [{ v: bd.p95[st], l: 'Top 5% ' }, { v: bd.p50[st], l: 'Median ', solid: true }, { v: bd.p5[st], l: 'Low 5% ' }].map(function(g){ g.y = Math.max(G.y0 + 12, Math.min(G.y1 - 12, G.Y(g.v))); return g; });
+    if (tags[1].y - tags[0].y < 23) tags[0].y = tags[1].y - 23; if (tags[2].y - tags[1].y < 23) tags[2].y = tags[1].y + 23;
+    c.globalAlpha = a4; tags.forEach(function(g){ fcPill(c, (G.small ? '' : g.l) + usd0(g.v), G.x1 - 6, g.y, g.solid ? '#0a1e3f' : 'rgba(255,255,255,.94)', g.solid ? '#fff' : '#0a1e3f', g.solid ? null : '#aeb9c8'); }); c.globalAlpha = 1;
+  }
+  /* hover */
+  if (FC.done && FC.hover != null){
+    var h = FC.hover, hx2 = Math.round(G.X(h)) + 0.5; c.strokeStyle = 'rgba(10,30,63,.5)'; c.lineWidth = 1; c.beginPath(); c.moveTo(hx2, G.y0); c.lineTo(hx2, G.y1); c.stroke();
+    (h > 0 ? [[bd.p95[h], '#2a6fdb'], [bd.p5[h], '#2a6fdb'], [bd.p50[h], '#0a1e3f']] : [[G.hc[h + G.hist], '#0a1e3f']]).forEach(function(d){ c.fillStyle = '#fff'; c.beginPath(); c.arc(G.X(h), G.Y(d[0]), 5.5, 0, 6.2832); c.fill(); c.fillStyle = d[1]; c.beginPath(); c.arc(G.X(h), G.Y(d[0]), 3.5, 0, 6.2832); c.fill(); });
+  }
+  /* numbers tick while the runs come in */
+  if (FC.baked !== FC.shown && (FC.baked === f.runs || now - (FC.lastK || 0) > 90)){ fcKpis(FC.baked); FC.shown = FC.baked; FC.lastK = now; }
+  var badge = $('f-status');
+  if (t < T.pathsEnd){ badge.textContent = 'Run ' + F.num(Math.min(f.runs, launched)) + ' of ' + F.num(f.runs); badge.className = 'badge'; }
+  if (t < T.total) FC.raf = requestAnimationFrame(fcFrame);
+  else if (!FC.done){ FC.done = true; badge.textContent = F.num(f.runs) + ' runs · done'; badge.className = 'badge live'; fcFinish(); }
+}
+function fcDraw(){ if (FC.G) fcFrame(performance.now()); }
+function fcKpis(k){
+  var f = FC.f, s0 = f.s0, e = f.ends.slice(0, k).sort(function(a, b){ return a - b; }), ok = k >= 8, q = function(x){ return f.quantile(e, x); }, vs = function(v){ return F.pct(v / s0 - 1, 0, true); };
+  var up = 0; for (var i = 0; i < k; i++) if (f.ends[i] > s0) up++;
+  var med = ok ? q(0.5) : null, wait = '…';
+  kpi($('f-kpis'), [
+    { l: 'Price now', v: usd(s0), s: 'where every run starts' },
+    { l: 'Median run ends at', v: ok ? usd0(med) : wait, cls: ok ? (med >= s0 ? 'up' : 'down') : null, s: ok ? vs(med) + ' from today' : 'in ' + (FC.steps === 252 ? 'a year' : horizon()) },
+    { l: 'Runs that end higher', v: ok ? F.pct(up / k, 0) : wait, s: F.num(up) + ' of ' + F.num(k) + ' so far' },
+    { l: 'Middle half of runs', v: ok ? usd0(q(0.25)) + ' – ' + usd0(q(0.75)) : wait, s: 'half ended in this range' },
+    { l: 'Rough ' + horizon() + ' (1 in 20)', v: ok ? usd0(q(0.05)) : wait, s: ok ? vs(q(0.05)) + ' or worse' : '' },
+    { l: 'Great ' + horizon() + ' (1 in 20)', v: ok ? usd0(q(0.95)) : wait, s: ok ? vs(q(0.95)) + ' or better' : '' }
+  ]);
+  if (k === f.runs) $('f-kpis').children[2].lastChild.textContent = F.num(up) + ' of ' + F.num(k) + ' runs';
+}
+function fcOdds(st){
+  var box = $('f-odds'), rows = [['Ends above today’s price', 'pUp', 1], ['Ends up 20% or more', 'pUp20', 1], ['Touches +20% at some point', 'pPeak20', 1], ['Ends down 20% or more', 'pDn20', 0], ['Dips 20% below today at some point', 'pDip20', 0]];
+  if (!st || box.children.length !== rows.length){ box.textContent = ''; rows.forEach(function(r){ var row = el('div', 'orow'); row.appendChild(el('span', 'ol', r[0])); row.appendChild(el('b', null, '–')); var tr = el('div', 'ot'), fill = el('i'); fill.style.background = r[2] ? '#2a6fdb' : '#d7263d'; tr.appendChild(fill); row.appendChild(tr); box.appendChild(row); }); }
+  rows.forEach(function(r, i){ var row = box.children[i], v = st ? st[r[1]] : 0; row.children[1].textContent = st ? F.pct(v, 0) : '–'; row.children[2].firstChild.style.width = (v * 100) + '%'; });
+}
+function fcFinish(){
+  var f = FC.f, st = f.stats, m = f.model, s = fcSeries(), R = [], hz = horizon(), ch = function(v){ return F.pct(v / f.s0 - 1, 0, true); };
+  fcOdds(st);
+  R.push({ tone: st.pUp >= 0.5 ? 'up' : 'down', text: s.sym + ' finished the ' + hz + ' above today’s ' + usd(f.s0) + ' in ' + F.pct(st.pUp, 0) + ' of ' + F.num(f.runs) + ' runs. The median run ended at ' + usd0(st.median) + ' (' + ch(st.median) + ').', math: 'sort the ' + F.num(f.runs) + ' ending prices; the median is the middle one · runs above ' + usd(f.s0) + ' ÷ ' + F.num(f.runs) + ' = ' + F.pct(st.pUp, 1) });
+  R.push({ tone: 'note', text: 'Half of the runs ended between ' + usd0(st.p25) + ' and ' + usd0(st.p75) + '. One in twenty ended below ' + usd0(st.p5) + ' (' + ch(st.p5) + ') and one in twenty above ' + usd0(st.p95) + ' (' + ch(st.p95) + ').', math: '25th and 75th percentiles of the ending prices · 5th and 95th percentiles for the tails' });
+  if (st.pDip20 >= 0.02) R.push({ tone: 'down', text: 'The path matters as much as the finish. In ' + F.pct(st.pDip20, 0) + ' of runs the price sat at least 20% below today at some point, though only ' + F.pct(st.pDn20, 0) + ' finished that low. The typical run had a worst slide of ' + F.pct(Math.abs(st.medDD), 0) + ' from a high.', math: 'runs whose lowest day was at or under ' + usd(f.s0 * 0.8) + ' ÷ ' + F.num(f.runs) + ' · worst slide = median of each run’s largest peak-to-trough drop' });
+  else R.push({ tone: 'note', text: 'Deep drops were rare: ' + F.pct(st.pDip20, 0) + ' of runs ever sat 20% below today. The typical run had a worst slide of ' + F.pct(Math.abs(st.medDD), 0) + ' from a high.', math: 'worst slide = median of each run’s largest peak-to-trough drop' });
+  R.push({ tone: 'note', text: 'The runs lean ' + (m.drift >= 0 ? 'up' : 'down') + ' because the drift is ' + F.pct(m.drift, 1, true) + ' a year: half ' + s.sym + '’s own trend (' + F.pct(m.ownC, 0, true) + (m.own !== m.ownC ? ', capped from ' + F.pct(m.own, 0, true) : '') + ') and half the long-run market average scaled by beta (' + F.pct(m.mkt, 1, true) + '). The average run ended at ' + usd0(st.mean) + '; the median is lower because big swings drag on compounding.', math: '0.5 × ' + F.pct(m.ownC, 1, true) + ' + 0.5 × (7% × ' + m.beta.toFixed(2) + ') = ' + F.pct(m.drift, 1, true) + ' · average of the ' + F.num(f.runs) + ' ending prices = ' + usd0(st.mean) });
+  R.push({ tone: 'note', text: Math.abs(m.k0 - 1) < 0.08 ? 'Day-to-day swings over the last 30 days are about normal for ' + s.sym + ', so the fan opens at its usual pace.' : 'Swings over the last 30 days are ' + m.k0.toFixed(2) + '× their normal size, so the first months of every run are ' + (m.k0 > 1 ? 'wider' : 'calmer') + ' than usual before settling back.', math: 'standard deviation of the last 30 daily moves ÷ standard deviation of all ' + F.num(m.days) + ' = ' + m.k0.toFixed(2) + ' (kept between 0.6 and 1.8)' });
+  readList($('f-read'), R);
+  $('f-chart').querySelector('canvas').setAttribute('aria-label', s.sym + ': ' + F.num(f.runs) + ' simulated paths for the next ' + hz + '. Median ending price ' + usd0(st.median) + ', middle half ' + usd0(st.p25) + ' to ' + usd0(st.p75) + ', ' + F.pct(st.pUp, 0) + ' of runs ended higher. Use left and right arrow keys to read values by date.');
+  if (FC.stale) fcRun(true);
+}
+function fcRun(quick){
+  if (!real) return;
+  cancelAnimationFrame(FC.raf); L.hideTip(); FC.hover = null; FC.done = false; FC.shown = -1;
+  fcCompute(); fcStatic(); fcLayout();
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  FC.t0 = performance.now() - (quick || reduce ? FC.T.total + 1 : 0);
+  if (quick || reduce) fcFrame(performance.now()); else FC.raf = requestAnimationFrame(fcFrame);
+}
+function fcTip(h, cx, cy){
+  var f = FC.f, G = FC.G, bd = f.bands, cv = $('f-chart').querySelector('canvas'), bb = cv.getBoundingClientRect();
+  h = Math.max(-G.hist, Math.min(f.steps, h)); FC.hover = h; fcDraw();
+  var x = cx != null ? cx : bb.left + G.X(h), y = cy != null ? cy : bb.top + 60;
+  if (h <= 0) L.showTip(x, y, F.date(G.hd[h + G.hist]), [{ color: '#fff', label: 'Actual close', value: usd(G.hc[h + G.hist]) }]);
+  else L.showTip(x, y, F.date(FC.future[h - 1]) + ' · simulated', [{ color: '#fff', label: 'Median run', value: usd0(bd.p50[h]) }, { color: '#8db8f2', label: 'Middle half', value: usd0(bd.p25[h]) + ' – ' + usd0(bd.p75[h]) }, { color: '#4a86e0', label: '9 in 10 runs', value: usd0(bd.p5[h]) + ' – ' + usd0(bd.p95[h]) }, { label: 'Runs above today’s price', value: F.pct(bd.up[h], 0) }]);
+}
+(function(){
+  if (!real){ $('tab-forecast').hidden = true; return; }
+  var cv = $('f-chart').querySelector('canvas');
+  cv.addEventListener('pointermove', function(ev){ if (!FC.done) return; var G = FC.G, bb = cv.getBoundingClientRect(), px = ev.clientX - bb.left; fcTip(Math.round((px - G.x0) / (G.x1 - G.x0) * (G.hist + FC.f.steps)) - G.hist, ev.clientX, ev.clientY); });
+  function leave(){ if (FC.hover == null) return; FC.hover = null; L.hideTip(); if (FC.done) fcDraw(); }
+  cv.addEventListener('pointerleave', leave); cv.addEventListener('blur', leave);
+  cv.addEventListener('focus', function(){ if (FC.done) fcTip(FC.f.steps); });
+  cv.addEventListener('keydown', function(ev){ if (!FC.done) return; var d = ev.key === 'ArrowLeft' ? -1 : ev.key === 'ArrowRight' ? 1 : 0; if (d){ ev.preventDefault(); fcTip((FC.hover == null ? FC.f.steps : FC.hover) + d * (ev.shiftKey ? 21 : 1)); } else if (ev.key === 'Escape') leave(); });
+  seg('f-runs', function(v){ FC.runs = +v; fcRun(); });
+  seg('f-steps', function(v){ FC.steps = +v; fcRun(); });
+  $('f-again').addEventListener('click', function(){ FC.seed++; fcRun(); });
+  $('m-fc').addEventListener('click', function(){ FC.sym = M.sel; location.hash = 'forecast'; showTab('forecast'); window.scrollTo(0, 0); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ if (!$('forecast').hidden && FC.G){ fcLayout(); if (FC.done) fcDraw(); } });
+})();
+function renderForecast(){ L.injectCSS(); fcPicker(); fcRun(); }
+function resizeForecast(){ if (!FC.f) return; fcLayout(); if (FC.done) fcDraw(); }
 
 /* =====================================================  PORTFOLIO  */
 var P = { days: 182, w: { AAPL: 20, MSFT: 20, NVDA: 20, JPM: 20, COST: 20 } };
@@ -581,10 +942,10 @@ function renderPortPicker(){
   var box = $('p-pick'); if (!box) return; box.textContent = '';
   portSyms().forEach(function(sym){
     var s = real.series[sym], row = el('div', 'prow'), id = 'pw-' + sym.replace(/[^A-Z0-9]/g, '');
-    var lab = el('label', 'pname'); lab.htmlFor = id; var dot = el('i'); dot.style.background = s.color; lab.appendChild(dot); lab.appendChild(el('b', null, sym)); lab.appendChild(el('span', null, s.name));
+    var lab = el('label', 'pname'); lab.htmlFor = id; lab.appendChild(logo(s)); lab.appendChild(el('b', null, sym)); lab.appendChild(el('span', null, s.name));
     var rg = el('input'); rg.type = 'range'; rg.min = 0; rg.max = 50; rg.step = 5; rg.id = id; rg.value = P.w[sym] || 0; rg.setAttribute('aria-label', sym + ' weight');
     var out = el('output', 'pval', (P.w[sym] || 0) + '');
-    rg.addEventListener('input', function(){ P.w[sym] = +rg.value; out.textContent = rg.value; row.classList.toggle('on', +rg.value > 0); renderPortResults(); });
+    rg.addEventListener('input', function(){ P.w[sym] = +rg.value; out.textContent = rg.value; row.classList.toggle('on', +rg.value > 0); ANIM = false; renderPortResults(); ANIM = true; });
     row.classList.toggle('on', (P.w[sym] || 0) > 0);
     row.appendChild(lab); row.appendChild(rg); row.appendChild(out); box.appendChild(row);
   });
@@ -613,8 +974,8 @@ function renderPortResults(){
     { l: 'Return per unit of risk', v: isFinite(ps.rr) ? ps.rr.toFixed(2) : '–', s: real.index + ' ' + (isFinite(bs.rr) ? bs.rr.toFixed(2) : '–') }
   ]);
   $('p-chart-sub').textContent = 'Buy and hold from ' + F.date(dates[0]) + ' to ' + F.date(dates[dates.length - 1]) + ', no rebalancing, before fees and taxes.';
-  L.lineChart($('p-chart'), { dates: dates, height: 320, endLabels: true, yFmt: function(v){ return F.money(v, true); }, label: 'Growth of $10,000',
-    series: [{ name: 'Your portfolio', short: 'You', color: 'var(--ink)', values: val, width: 2.5, area: true, fmt: function(v){ return F.money(v); } }, { name: real.index + ' (' + real.series[real.index].name + ')', short: real.index, color: '#e08a00', values: bv, width: 2, fmt: function(v){ return F.money(v); } }],
+  L.lineChart($('p-chart'), { dates: dates, height: 340, endLabels: true, animate: ANIM, yFmt: function(v){ return F.money(v, true); }, label: 'Growth of $10,000',
+    series: [{ name: 'Your portfolio', short: 'You', color: 'var(--ink)', values: val, width: 2.5, area: true, areaColor: '#2a6fdb', fmt: function(v){ return F.money(v); } }, { name: real.index + ' (' + real.series[real.index].name + ')', short: real.index, color: '#e08a00', values: bv, width: 2, fmt: function(v){ return F.money(v); } }],
     refs: [{ y: 10000 }] });
   /* contribution by holding */
   var rows = held.map(function(k, j){ var r = maps[j][keys[keys.length - 1]] / maps[j][keys[0]] - 1, sret = S.returns(keys.map(function(t){ return maps[j][t]; })); return { k: k, w: w[j], r: r, c: w[j] * r, vol: S.std(sret) * Math.sqrt(252) }; }).sort(function(a, b){ return b.c - a.c; });
@@ -758,7 +1119,7 @@ drop.addEventListener('drop', function(ev){ readFile(ev.dataTransfer.files[0]); 
 B.data = B.sample; setData(B.sample);
 if (real){ realBadge(); refreshReal(); } else { setSeg('m-source', 'sim'); $('m-badge').textContent = 'Simulated'; $('m-badge').className = 'badge'; }
 showTab(location.hash.slice(1));
-L.onResize(document.querySelector('footer'), function(){ var t = currentTab(); if (t === 'markets') renderMarkets(); else if (t === 'portfolio') renderPort(); else renderBiz(); });
+L.onResize(document.querySelector('footer'), function(){ var t = currentTab(); ANIM = false; if (t === 'markets') renderMarkets(true); else if (t === 'forecast') resizeForecast(); else if (t === 'portfolio') renderPort(); else renderBiz(); ANIM = true; });
 })();
 </script>
 </body>

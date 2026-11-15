@@ -420,13 +420,71 @@
     return out;
   };
 
+  /* ---------- year-ahead simulation
+     Each run builds one possible future by replaying the stock's own real daily moves in random
+     five-day chunks (so calm and wild stretches stay together), starting from the latest price.
+     Drift is a blend of the stock's own trend (capped) and the long-run market average scaled by beta.
+     Swings start at the recent volatility level and fade back to normal. */
+  Lab.forecast = function (close, o) {
+    o = o || {};
+    var steps = o.steps || 252, runs = o.runs || 300, ppy = o.ppy || 252, rnd = mulberry32(o.seed || 1), block = 5;
+    var ret = st.returns(close), n = ret.length, mean = st.mean(ret), sd = st.std(ret), s0 = close[close.length - 1];
+    var shocks = ret.map(function (r) { return r - mean; });
+    var own = Math.pow(s0 / close[0], ppy / n) - 1, ownC = Math.max(-0.25, Math.min(0.35, own));
+    var beta = o.beta == null || !isFinite(o.beta) ? 1 : Math.max(0.5, Math.min(2, o.beta)), mkt = 0.07 * beta;
+    var drift = 0.5 * ownC + 0.5 * mkt, dDaily = Math.pow(1 + drift, 1 / ppy) - 1;
+    var recent = st.std(ret.slice(-30)), k0 = Math.max(0.6, Math.min(1.8, recent / (sd || 1)));
+    var paths = [], ends = [], lows = [], highs = [], dds = [], i, t, b;
+    for (i = 0; i < runs; i++) {
+      var p = new Float32Array(steps + 1), lo = s0, hi = s0, peak = s0, dd = 0; p[0] = s0; t = 1;
+      while (t <= steps) {
+        var at = Math.floor(rnd() * (n - block + 1));
+        for (b = 0; b < block && t <= steps; b++, t++) {
+          var k = 1 + (k0 - 1) * Math.pow(0.5, t / 60), v = p[t - 1] * Math.max(0.05, 1 + dDaily + shocks[at + b] * k);
+          p[t] = v; if (v < lo) lo = v; if (v > hi) hi = v; if (v > peak) peak = v; else if (v / peak - 1 < dd) dd = v / peak - 1;
+        }
+      }
+      paths.push(p); ends.push(p[steps]); lows.push(lo); highs.push(hi); dds.push(dd);
+    }
+    function q(sorted, f) { var x = (sorted.length - 1) * f, a = Math.floor(x), c = Math.min(sorted.length - 1, a + 1); return sorted[a] + (sorted[c] - sorted[a]) * (x - a); }
+    var bands = { p1: [], p5: [], p25: [], p50: [], p75: [], p95: [], p99: [], up: [] }, col = new Float64Array(runs);
+    for (t = 0; t <= steps; t++) {
+      var above = 0; for (i = 0; i < runs; i++) { col[i] = paths[i][t]; if (col[i] > s0) above++; }
+      var srt = Array.prototype.slice.call(col).sort(function (x, y) { return x - y; });
+      bands.p1.push(q(srt, 0.01)); bands.p5.push(q(srt, 0.05)); bands.p25.push(q(srt, 0.25)); bands.p50.push(q(srt, 0.5)); bands.p75.push(q(srt, 0.75)); bands.p95.push(q(srt, 0.95)); bands.p99.push(q(srt, 0.99)); bands.up.push(above / runs);
+    }
+    var se = ends.slice().sort(function (x, y) { return x - y; });
+    function frac(arr, fn) { var c = 0; for (var j = 0; j < arr.length; j++) if (fn(arr[j])) c++; return c / arr.length; }
+    return {
+      s0: s0, steps: steps, runs: runs, paths: paths, ends: ends, bands: bands, quantile: q,
+      stats: {
+        median: q(se, 0.5), mean: st.mean(ends), p5: q(se, 0.05), p25: q(se, 0.25), p75: q(se, 0.75), p95: q(se, 0.95),
+        pUp: frac(ends, function (e) { return e > s0; }), pUp20: frac(ends, function (e) { return e >= s0 * 1.2; }), pDn20: frac(ends, function (e) { return e <= s0 * 0.8; }),
+        pDip20: frac(lows, function (l) { return l <= s0 * 0.8; }), pPeak20: frac(highs, function (h) { return h >= s0 * 1.2; }),
+        medDD: q(dds.slice().sort(function (x, y) { return x - y; }), 0.5)
+      },
+      model: { own: own, ownC: ownC, beta: beta, mkt: mkt, drift: drift, sd: sd, vol: sd * Math.sqrt(ppy), recentVol: recent * Math.sqrt(ppy), k0: k0, days: n, block: block }
+    };
+  };
+  /* the next n weekdays after a date */
+  Lab.futureDates = function (last, n) {
+    var out = [], d = new Date(last.getTime());
+    while (out.length < n) { d = new Date(d.getTime() + 864e5); var wd = d.getUTCDay(); if (wd !== 0 && wd !== 6) out.push(d); }
+    return out;
+  };
+
   /* ---------- charts (SVG, one y-axis each, hover on every chart) */
   var css = '' +
     '.lc{position:relative;width:100%}.lc svg{display:block;width:100%;height:auto;overflow:visible}' +
     '.lc text{font-family:var(--mono,ui-monospace,Menlo,monospace);font-size:10.5px;fill:var(--muted,#5d6878);font-variant-numeric:tabular-nums}' +
-    '.lc .grid{stroke:var(--line,#d3dbe6);stroke-width:1}.lc .axis{stroke:var(--line-strong,#aeb9c8);stroke-width:1}' +
+    '.lc .grid{stroke:var(--line,#d3dbe6);stroke-width:1;stroke-dasharray:2 5}.lc .axis{stroke:var(--line-strong,#aeb9c8);stroke-width:1}' +
     '.lc .ref{stroke:var(--muted,#5d6878);stroke-width:1;opacity:.55}.lc .ln{fill:none;stroke-linejoin:round;stroke-linecap:round}' +
     '.lc .xh{stroke:var(--ink,#0a1e3f);stroke-width:1;opacity:.5}.lc .endl{fill:var(--ink,#0a1e3f);font-weight:600}' +
+    '.lc .tagt{fill:#fff;font-weight:600;font-size:11px}.lc .yh{stroke:var(--ink,#0a1e3f);stroke-width:1;opacity:.28;stroke-dasharray:3 4}' +
+    '@keyframes lc-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes lc-fade{from{opacity:0}to{opacity:1}}@keyframes lc-rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}@keyframes lc-ping{0%{r:4;opacity:.55}100%{r:15;opacity:0}}' +
+    '.lc .anim .ln{stroke-dasharray:1;stroke-dashoffset:1;animation:lc-draw .95s cubic-bezier(.3,.1,.2,1) forwards}.lc .anim .ar,.lc .anim .late{opacity:0;animation:lc-fade .6s .55s ease-out forwards}.lc .anim .bar{transform-box:fill-box;transform-origin:50% 100%;animation:lc-rise .5s cubic-bezier(.2,.7,.2,1) both}' +
+    '.lc .ping{fill:none;stroke-width:2;animation:lc-ping 1.8s ease-out infinite}' +
+    '@media (prefers-reduced-motion:reduce){.lc .anim .ln,.lc .anim .ar,.lc .anim .late,.lc .anim .bar,.lc .ping{animation:none;stroke-dashoffset:0;opacity:1}.lc .ping{display:none}}' +
     '.lc .col{transition:opacity .12s}.lc .hit:hover + .col, .lc .col.on{opacity:.78}' +
     '.lab-tip{position:fixed;z-index:60;pointer-events:none;background:var(--ink,#0a1e3f);color:#fff;border-radius:8px;padding:8px 10px;font:500 12px/1.35 var(--body,system-ui,sans-serif);box-shadow:0 8px 24px rgba(10,30,63,.22);max-width:260px;opacity:0;transition:opacity .08s}' +
     '.lab-tip.on{opacity:1}.lab-tip .tt{font:500 10.5px var(--mono,ui-monospace,monospace);opacity:.72;margin-bottom:4px;letter-spacing:.02em}' +
@@ -464,7 +522,7 @@
     t.style.left = left + 'px'; t.style.top = top + 'px';
   }
   function hideTip() { if (tipEl) tipEl.classList.remove('on'); }
-  Lab.hideTip = hideTip;
+  Lab.hideTip = hideTip; Lab.showTip = showTip; Lab.injectCSS = injectCSS; Lab.niceTicks = niceTicks;
 
   function niceTicks(lo, hi, count) {
     var span = hi - lo || 1, step = Math.pow(10, Math.floor(Math.log10(span / count))), err = span / count / step;
@@ -506,6 +564,7 @@
   }
 
   /* line chart: o = {dates, series:[{name,color,values,width,area}], band:{lo,hi,color}, height, yFmt, refs:[{y,label}], yDomain, endLabels, legend, bars:{values,color}, label} */
+  var chartN = 0;
   Lab.lineChart = function (el, o) {
     injectCSS(); el.textContent = ''; el.classList.add('lc');
     if (o.legend !== false) legend(el, o.series.map(function (s) { return { name: s.name, color: s.color }; }).concat(o.band ? [{ name: o.band.name, color: o.band.color, box: true }] : []));
@@ -522,11 +581,14 @@
     var tipFmt = yFmt;
     if (!o.yFmt && ticks.length > 1) { var stp = Math.abs(ticks[1] - ticks[0]), dec = stp >= 1 ? 0 : stp >= 0.1 ? 1 : stp >= 0.01 ? 2 : 4; yFmt = function (v) { return fmt.num(v, dec); }; }
     var labs = axisLabels(ticks, yFmt), lw = 0; labs.forEach(function (t) { lw = Math.max(lw, t.length); });
-    var m = { t: 10, r: o.endLabels ? 58 : 14, b: o.noX ? 8 : 24, l: Math.max(34, lw * 6.6 + 12) };
+    var tagTxt = o.lastTag && o.series[0] && o.series[0].values[n - 1] != null ? (o.series[0].fmt || tipFmt)(o.series[0].values[n - 1]) : null;
+    var m = { t: 10, r: o.endLabels ? 58 : tagTxt ? Math.max(52, tagTxt.length * 7 + 22) : 14, b: o.noX ? 8 : 24, l: Math.max(34, lw * 6.6 + 12) };
     var iw = W - m.l - m.r, ih = H - m.t - m.b;
     var X = function (i) { return m.l + (n <= 1 ? iw / 2 : i / (n - 1) * iw); };
     var Y = function (v) { return m.t + (1 - (v - lo) / (hi - lo || 1)) * ih; };
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label || 'Chart') + '">';
+    var uid = 'lc' + (++chartN), s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label || 'Chart') + '"' + (o.animate ? ' class="anim"' : '') + '><defs>';
+    o.series.forEach(function (sr, k) { if (sr.area) s += '<linearGradient id="' + uid + 'a' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + (sr.areaColor || sr.color) + ';stop-opacity:' + (sr.areaTop || 0.2) + '"/><stop offset="1" style="stop-color:' + (sr.areaColor || sr.color) + ';stop-opacity:0"/></linearGradient>'; });
+    s += '</defs>';
     ticks.forEach(function (t, ti) {
       var y = Math.round(Y(t)) + 0.5;
       s += '<line class="grid" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y + '" y2="' + y + '"/><text x="' + (m.l - 8) + '" y="' + (y + 3.5) + '" text-anchor="end">' + esc(labs[ti]) + '</text>';
@@ -538,7 +600,7 @@
     });
     if (o.bars) {
       var bw = Math.max(1, Math.min(8, iw / n - 1)), y0 = Y(0);
-      o.bars.values.forEach(function (v, i) { if (v != null) s += '<rect x="' + (X(i) - bw / 2).toFixed(1) + '" y="' + Y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0, y0 - Y(v)).toFixed(1) + '" fill="' + o.bars.color + '" opacity=".55"/>'; });
+      o.bars.values.forEach(function (v, i) { if (v != null) s += '<rect class="bar" x="' + (X(i) - bw / 2).toFixed(1) + '" y="' + Y(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0, y0 - Y(v)).toFixed(1) + '" rx="' + Math.min(1.5, bw / 2).toFixed(1) + '" fill="' + (o.bars.colors ? o.bars.colors[i] : o.bars.color) + '" opacity=".6"' + (o.animate ? ' style="animation-delay:' + Math.round(i / n * 500) + 'ms"' : '') + '/>'; });
     }
     function path(vals) {
       var d = '', pen = false;
@@ -549,14 +611,16 @@
       var up = '', dn = '', started = false, i;
       for (i = 0; i < n; i++) if (o.band.hi[i] != null) { up += (started ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(o.band.hi[i]).toFixed(1); started = true; }
       for (i = n - 1; i >= 0; i--) if (o.band.lo[i] != null) dn += 'L' + X(i).toFixed(1) + ' ' + Y(o.band.lo[i]).toFixed(1);
-      if (up) s += '<path d="' + up + dn + 'Z" fill="' + o.band.color + '" opacity=".14"/>';
+      if (up) s += '<path class="ar" d="' + up + dn + 'Z" fill="' + o.band.color + '" fill-opacity=".14"/>';
     }
     o.series.forEach(function (sr) {
       if (sr.area) {
         var first = sr.values.findIndex(function (v) { return v != null; });
-        if (first >= 0) s += '<path d="' + path(sr.values) + 'L' + X(n - 1).toFixed(1) + ' ' + (m.t + ih) + 'L' + X(first).toFixed(1) + ' ' + (m.t + ih) + 'Z" fill="' + sr.color + '" opacity=".07"/>';
+        if (first >= 0) s += '<path class="ar" d="' + path(sr.values) + 'L' + X(n - 1).toFixed(1) + ' ' + (m.t + ih) + 'L' + X(first).toFixed(1) + ' ' + (m.t + ih) + 'Z" fill="url(#' + uid + 'a' + o.series.indexOf(sr) + ')"/>';
       }
-      s += '<path class="ln" d="' + path(sr.values) + '" stroke="' + sr.color + '" stroke-width="' + (sr.width || 2) + '"/>';
+    });
+    o.series.forEach(function (sr) {
+      s += '<path class="ln" pathLength="1" d="' + path(sr.values) + '" stroke="' + sr.color + '" stroke-width="' + (sr.width || 2) + '"' + '/>';
     });
     /* event markers: o.marks = [{i, v, color, label, tip}] */
     var markAt = {};
@@ -564,14 +628,14 @@
       if (mk.v == null || mk.i < 0 || mk.i >= n) return;
       markAt[mk.i] = mk;
       var mx = X(mk.i), my = Y(mk.v), up = mk.dir !== 'down', ly = up ? my - 11 : my + 18;
-      s += '<circle cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5.5" fill="' + mk.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
-      if (mk.label) s += '<text x="' + mx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle" style="font-weight:600;fill:' + mk.color + '">' + esc(mk.label) + '</text>';
+      s += '<circle class="late" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5.5" fill="' + mk.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
+      if (mk.label) s += '<text class="late" x="' + mx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle" style="font-weight:600;fill:' + mk.color + '">' + esc(mk.label) + '</text>';
     });
     /* end markers and labels */
     var ends = [];
     o.series.forEach(function (sr) {
       var v = sr.values[n - 1]; if (v == null) return;
-      if (!sr.noDot) s += '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="4" fill="' + sr.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
+      if (!sr.noDot) s += (o.pulse && sr === o.series[0] ? '<circle class="ping" cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="4" stroke="' + sr.color + '"/>' : '') + '<circle class="late" cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="4" fill="' + sr.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>';
       if (o.endLabels) ends.push({ y: Y(v), text: sr.short || sr.name });
     });
     if (ends.length) {
@@ -579,15 +643,20 @@
       for (var e = 1; e < ends.length; e++) if (ends[e].y - ends[e - 1].y < 12) ends[e].y = ends[e - 1].y + 12;
       ends.forEach(function (en) { s += '<text class="endl" x="' + (W - m.r + 9) + '" y="' + (en.y + 3.5).toFixed(1) + '">' + esc(en.text) + '</text>'; });
     }
+    if (tagTxt) {
+      var ty = Math.max(m.t + 10, Math.min(m.t + ih - 10, Y(o.series[0].values[n - 1]))), tw = tagTxt.length * 7 + 12;
+      s += '<g class="late"><rect x="' + (W - m.r + 7) + '" y="' + (ty - 10).toFixed(1) + '" width="' + tw + '" height="20" rx="5" fill="' + o.series[0].color + '"/><text class="tagt" x="' + (W - m.r + 7 + tw / 2) + '" y="' + (ty + 4).toFixed(1) + '" text-anchor="middle">' + esc(tagTxt) + '</text></g>';
+    }
     s += '<line class="axis" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + (m.t + ih + 0.5) + '" y2="' + (m.t + ih + 0.5) + '"/>';
-    s += '<g class="hov" style="display:none"><line class="xh" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>';
+    s += '<g class="hov" style="display:none"><line class="xh" y1="' + m.t + '" y2="' + (m.t + ih) + '"/><line class="yh" x1="' + m.l + '" x2="' + (W - m.r) + '"/>';
     o.series.forEach(function (sr, k) { s += '<circle data-k="' + k + '" r="4" fill="' + sr.color + '" stroke="var(--surface,#fff)" stroke-width="2"/>'; });
     s += '</g><rect class="cap" x="' + m.l + '" y="' + m.t + '" width="' + iw + '" height="' + ih + '" fill="transparent" tabindex="0" aria-label="' + esc((o.label || 'Chart') + '. Use left and right arrow keys to read values.') + '"/></svg>';
     var holder = document.createElement('div'); holder.innerHTML = s; var svg = holder.firstChild; el.appendChild(svg);
-    var hov = svg.querySelector('.hov'), xh = hov.querySelector('.xh'), dots = hov.querySelectorAll('circle'), cap = svg.querySelector('.cap'), cur = n - 1;
+    var hov = svg.querySelector('.hov'), xh = hov.querySelector('.xh'), yh = hov.querySelector('.yh'), dots = hov.querySelectorAll('circle'), cap = svg.querySelector('.cap'), cur = n - 1;
     function at(i, cx, cy) {
       i = Math.max(0, Math.min(n - 1, i)); cur = i;
       hov.style.display = ''; xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i));
+      var v0 = o.series[0] ? o.series[0].values[i] : null; if (v0 == null) yh.style.display = 'none'; else { yh.style.display = ''; yh.setAttribute('y1', Y(v0)); yh.setAttribute('y2', Y(v0)); }
       var rows = [];
       o.series.forEach(function (sr, k) {
         var v = sr.values[i];

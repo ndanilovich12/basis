@@ -13,6 +13,13 @@ Market analysis and business analytics that run in the browser. Part of my portf
 - A compare view, a correlation grid, and a short written read of the numbers
 - On the live site, any ticker can be added from a search box
 
+**Forecast**
+- Plays a stock's next 3, 6 or 12 months out 100 to 1,000 times and draws each run as it happens
+- Each run starts from the latest price and replays the stock's real daily moves in random five-day chunks
+- Drift blends the stock's own trend with the long-run market average scaled by beta; swings start at the recent volatility level
+- Shows the median run, the range most runs landed in, the odds of big gains or drops, and the math behind each line
+- A simulation of past behavior, not a prediction
+
 **Portfolio**
 
 - Set weights, then backtest them on real prices: growth of $10,000 against the S&P 500
